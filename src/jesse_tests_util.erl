@@ -71,7 +71,7 @@ do_test(Key, Config) ->
                ).
 
 %%% Internal functions
-
+-ifdef(ERLANG_OTP_VERSION_21).
 test_schema(DefaultSchema, Opts0, Schema, SchemaTests) ->
   Opts1 = make_options(Opts0),
   lists:foreach( fun(Test) ->
@@ -90,15 +90,44 @@ test_schema(DefaultSchema, Opts0, Schema, SchemaTests) ->
                            false ->
                              {error, _} = Result
                          end
-                     catch C:E ->
+                     catch C:E:StackTrace ->
                          ct:pal( "Error: ~p:~p~n"
                                  "Stacktrace: ~p~n"
-                               , [C, E, erlang:get_stacktrace()]
+                               , [C, E, StackTrace]
                                )
                      end
                  end
                , SchemaTests
                ).
+-else.
+test_schema(DefaultSchema, Opts0, Schema, SchemaTests) ->
+    Opts1 = make_options(Opts0),
+    lists:foreach( fun(Test) ->
+        Description = get_path(?DESCRIPTION, Test),
+        Instance = get_path(?DATA, Test),
+        ct:pal("* Test case: ~s~n", [Description]),
+        Opts = [ {default_schema_ver, DefaultSchema}
+            , {schema_loader_fun, fun load_schema/1}
+        ] ++ Opts1,
+        try jesse:validate_with_schema(Schema, Instance, Opts) of
+            Result ->
+                ct:pal("Result: ~p~n", [Result]),
+                case get_path(?VALID, Test) of
+                    true ->
+                        {ok, Instance} = Result;
+                    false ->
+                        {error, _} = Result
+                end
+        catch C:E ->
+            ct:pal( "Error: ~p:~p~n"
+            "Stacktrace: ~p~n"
+                , [C, E, erlang:get_stacktrace()]
+            )
+        end
+                   end
+        , SchemaTests
+    ).
+-endif.
 
 make_options(Options) ->
   lists:map( fun ({Key0, Value0}) ->
