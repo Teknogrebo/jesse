@@ -2,6 +2,7 @@
 /.deps_plt
 /.eunit
 /.rebar
+/.idea
 /bin
 /deps
 /doc/*.html
@@ -16,3 +17,4 @@
 /test/elvis_warnings
 /test/*.beam
 .#*
+*.iml
